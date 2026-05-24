@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Planificateur de trajet</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800;900&display=swap');
+
+:root {
+  --bg:      #0d1b2e;
+  --surface: #132035;
+  --card:    #1a2d47;
+  --border:  #254060;
+  --accent:  #f5a623;
+  --red:     #ff6b6b;
+  --green:   #4ecb71;
+  --blue:    #5bc4f5;
+  --text:    #e8eef5;
+  --muted:   #7a95b0;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+.app-header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--accent);
+  padding: 16px 16px 12px;
+  flex-shrink: 0;
+}
+.app-header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px; font-weight: 900;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+.app-header p { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* ── SCROLL AREA ── */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 14px 120px;
+}
+
+/* ── SECTION LABELS ── */
+.section-label {
+  font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted); margin: 18px 0 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── ARRIVAL BLOCK ── */
+.arrival-block {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.arrival-block label {
+  font-size: 11px; color: var(--muted); flex: 1;
+}
+.arrival-block input[type="time"] {
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  color: var(--accent);
+  font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 800;
+  padding: 8px 12px;
+  outline: none;
+  width: 130px;
+  text-align: center;
+}
+.arrival-block input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(70%) sepia(60%) saturate(500%) hue-rotate(5deg);
+}
+
+/* ── STEP CARDS ── */
+.step-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.step-card.has-duration { border-left: 3px solid var(--accent); }
+
+.step-top {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.step-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent); color: #0d1b2e;
+  font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.step-name-input {
+  flex: 1;
+  background: transparent;
+  border: none; border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  padding: 4px 0;
+  outline: none;
+}
+.step-name-input::placeholder { color: var(--muted); }
+.step-name-input:focus { border-bottom-color: var(--accent); }
+
+.del-btn {
+  background: none; border: none; color: var(--muted);
+  font-size: 18px; cursor: pointer; padding: 2px 4px;
+  line-height: 1; flex-shrink: 0;
+}
+
+.step-dur {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.dur-field {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 8px 10px;
+  display: flex; flex-direction: column;
+}
+.dur-field label { font-size: 9px; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 4px; }
+.dur-field input {
+  background: transparent; border: none; outline: none;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 20px; font-weight: 800;
+  width: 100%;
+}
+.dur-field input::placeholder { color: var(--border); font-size: 16px; }
+.dur-field input:focus { color: var(--accent); }
+
+/* ── ADD STEP ── */
+.add-step-btn {
+  width: 100%; padding: 12px;
+  background: transparent;
+  border: 1.5px dashed var(--border);
+  border-radius: 14px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px; cursor: pointer;
+  text-align: center; transition: all 0.15s;
+  margin-top: 4px;
+}
+.add-step-btn:active { border-color: var(--accent); color: var(--accent); }
+
+/* ── SAFETY ── */
+.safety-block {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.safety-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.safety-row:last-child { margin-bottom: 0; }
+.safety-label { font-size: 11px; color: var(--muted); flex: 1; }
+.safety-input-wrap {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 10px;
+}
+.safety-input-wrap input {
+  background: transparent; border: none; outline: none;
+  color: var(--text); font-family: 'Syne', sans-serif;
+  font-size: 16px; font-weight: 700; width: 44px;
+  text-align: right;
+}
+.safety-unit { font-size: 11px; color: var(--muted); }
+
+/* ── CALCULATE BTN ── */
+.calc-btn {
+  width: 100%; padding: 16px;
+  background: var(--accent);
+  border: none; border-radius: 14px;
+  color: #0d1b2e;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 800;
+  cursor: pointer; transition: all 0.15s;
+  margin-top: 16px;
+  letter-spacing: 0.5px;
+}
+.calc-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+/* ── RESULT ── */
+.result-block {
+  background: var(--card);
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  padding: 18px 16px;
+  margin-top: 14px;
+  display: none;
+}
+.result-block.visible { display: block; }
+
+.result-depart {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.result-depart-label {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px;
+}
+.result-depart-time {
+  font-family: 'Syne', sans-serif;
+  font-size: 52px; font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.result-depart-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+.result-divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+.result-timeline { }
+.timeline-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 10px; position: relative;
+}
+.timeline-row:last-child { margin-bottom: 0; }
+.tl-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+  margin-top: 4px; position: relative; z-index: 1;
+}
+.tl-dot.red   { background: var(--red); }
+.tl-dot.blue  { background: var(--blue); }
+.tl-dot.green { background: var(--green); }
+.tl-dot.fin   { background: var(--accent); width: 14px; height: 14px; margin-top: 2px; }
+.tl-line {
+  position: absolute; left: 4px; top: 14px;
+  width: 2px; background: var(--border);
+  bottom: -10px; z-index: 0;
+}
+.tl-content { flex: 1; }
+.tl-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.tl-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.tl-time {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: var(--text); flex-shrink: 0;
+}
+
+.result-totals {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.total-item { }
+.total-label { font-size: 9px; color: var(--muted); letter-spacing: 0.5px; }
+.total-value { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: var(--accent); }
+
+/* ── PRESET CHIPS ── */
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.preset-chip {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 11px;
+  font-size: 11px; color: var(--muted); cursor: pointer;
+  transition: all 0.15s;
+}
+.preset-chip:active { background: rgba(245,166,35,0.15); border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>🚗 Planificateur de trajet</h1>
+  <p>Saisissez l'heure d'arriv&eacute;e souhait&eacute;e &mdash; l'app calcule votre heure de d&eacute;part</p>
+</div>
+
+<div class="scroll-area">
+
+  <!-- ARRIVAL -->
+  <div class="section-label">Heure d'arriv&eacute;e souhait&eacute;e</div>
+  <div class="arrival-block">
+    <label>Je veux arriver &agrave;</label>
+    <input type="time" id="arrivalTime" value="12:00">
+  </div>
+
+  <!-- STEPS -->
+  <div class="section-label">&#201;tapes du trajet</div>
+
+  <div class="presets">
+    <span class="preset-chip" onclick="addPreset('Trajet principal','0','0')">+ Trajet</span>
+    <span class="preset-chip" onclick="addPreset('Pause','0','15')">+ Pause 15 min</span>
+    <span class="preset-chip" onclick="addPreset('Stationnement','0','10')">+ Parking</span>
+    <span class="preset-chip" onclick="addPreset('Carburant','0','10')">+ Carburant</span>
+    <span class="preset-chip" onclick="addPreset('Repas','0','30')">+ Repas</span>
+  </div>
+
+  <div id="stepsList"></div>
+
+  <button class="add-step-btn" onclick="addStep()">+ Ajouter une &eacute;tape</button>
+
+  <!-- SAFETY MARGINS -->
+  <div class="section-label">Marges de s&eacute;curit&eacute;</div>
+  <div class="safety-block">
+    <div class="safety-row">
+      <span class="safety-label">&#128675; Embouteillages / ralentissements</span>
+      <div class="safety-input-wrap">
+        <input type="number" id="safetyTraffic" value="15" min="0" max="180">
+        <span class="safety-unit">min</span>
+      </div>
+    </div>
+    <div class="safety-row">
+      <span class="safety-label">&#9889; Impr&eacute;vus divers</span>
+      <div class="safety-input-wrap">
+        <input type="number" id="safetyMisc" value="10" min="0" max="60">
+        <span class="safety-unit">min</span>
+      </div>
+    </div>
+    <div class="safety-row">
+      <span class="safety-label">&#128338; Marge d'avance souhait&eacute;e</span>
+      <div class="safety-input-wrap">
+        <input type="number" id="safetyBuffer" value="5" min="0" max="60">
+        <span class="safety-unit">min</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALCULATE -->
+  <button class="calc-btn" onclick="calculate()">&#9654; Calculer l'heure de d&eacute;part</button>
+
+  <!-- RESULT -->
+  <div class="result-block" id="resultBlock">
+    <div class="result-depart">
+      <div class="result-depart-label">&#128640; Heure de d&eacute;part</div>
+      <div class="result-depart-time" id="resultTime">--:--</div>
+      <div class="result-depart-sub" id="resultSub"></div>
+    </div>
+
+    <div class="result-divider"></div>
+
+    <div class="result-timeline" id="resultTimeline"></div>
+
+    <div class="result-totals">
+      <div class="total-item">
+        <div class="total-label">DUR&#201;E TRAJET</div>
+        <div class="total-value" id="totalTrajet">0 min</div>
+      </div>
+      <div class="total-item">
+        <div class="total-label">MARGES INCLUSES</div>
+        <div class="total-value" id="totalMarges">0 min</div>
+      </div>
+      <div class="total-item">
+        <div class="total-label">DUR&#201;E TOTALE</div>
+        <div class="total-value" id="totalDuree">0 min</div>
+      </div>
+      <div class="total-item">
+        <div class="total-label">ARRIV&#201;E PR&#201;VUE</div>
+        <div class="total-value" id="totalArrivee">--:--</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var stepCount = 0;
+
+function addStep(name, h, m) {
+  stepCount++;
+  var id = stepCount;
+  var div = document.createElement('div');
+  div.className = 'step-card';
+  div.id = 'step-' + id;
+  div.innerHTML =
+    '<div class="step-top">'
+      + '<div class="step-num">' + id + '</div>'
+      + '<input class="step-name-input" type="text" placeholder="Nom de l\'&eacute;tape..." value="' + (name||'') + '">'
+      + '<button class="del-btn" onclick="removeStep(' + id + ')">&#10005;</button>'
+    + '</div>'
+    + '<div class="step-dur">'
+      + '<div class="dur-field">'
+        + '<label>HEURES</label>'
+        + '<input type="number" min="0" max="24" placeholder="0" value="' + (h||'') + '" oninput="onDurInput(this)">'
+      + '</div>'
+      + '<div class="dur-field">'
+        + '<label>MINUTES</label>'
+        + '<input type="number" min="0" max="59" placeholder="0" value="' + (m||'') + '" oninput="onDurInput(this)">'
+      + '</div>'
+    + '</div>';
+  document.getElementById('stepsList').appendChild(div);
+}
+
+function addPreset(name, h, m) {
+  addStep(name, h, m);
+  // Auto-focus the hours field of new step
+  setTimeout(function() {
+    var cards = document.querySelectorAll('.step-card');
+    var last = cards[cards.length-1];
+    if (last) {
+      var inp = last.querySelectorAll('input[type="number"]')[0];
+      if (inp) inp.focus();
+    }
+  }, 50);
+}
+
+function onDurInput(inp) {
+  var card = inp.closest('.step-card');
+  var inputs = card.querySelectorAll('input[type="number"]');
+  var h = parseInt(inputs[0].value)||0;
+  var m = parseInt(inputs[1].value)||0;
+  card.classList.toggle('has-duration', (h+m)>0);
+}
+
+function removeStep(id) {
+  var el = document.getElementById('step-' + id);
+  if (el) el.remove();
+  // Renumber visible steps
+  var cards = document.querySelectorAll('.step-card');
+  cards.forEach(function(c, i) {
+    var num = c.querySelector('.step-num');
+    if (num) num.textContent = i+1;
+  });
+}
+
+function getSteps() {
+  var steps = [];
+  var cards = document.querySelectorAll('.step-card');
+  cards.forEach(function(card) {
+    var nameEl = card.querySelector('.step-name-input');
+    var inputs = card.querySelectorAll('input[type="number"]');
+    var h = parseInt(inputs[0].value)||0;
+    var m = parseInt(inputs[1].value)||0;
+    steps.push({
+      name: nameEl.value.trim() || 'Étape',
+      minutes: h*60 + m
+    });
+  });
+  return steps;
+}
+
+function minToHM(min) {
+  var h = Math.floor(Math.abs(min)/60);
+  var m = Math.abs(min)%60;
+  return (h>0 ? h+'h ' : '') + m+'min';
+}
+
+function addMinutes(timeStr, mins) {
+  var parts = timeStr.split(':');
+  var total = parseInt(parts[0])*60 + parseInt(parts[1]) + mins;
+  // Handle crossing midnight
+  total = ((total % 1440) + 1440) % 1440;
+  var hh = Math.floor(total/60);
+  var mm = total%60;
+  return (hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;
+}
+
+function subtractMinutes(timeStr, mins) {
+  return addMinutes(timeStr, -mins);
+}
+
+function calculate() {
+  var arrival = document.getElementById('arrivalTime').value;
+  if (!arrival) { alert('Veuillez saisir une heure d\'arrivée.'); return; }
+
+  var steps = getSteps();
+  var traffic = parseInt(document.getElementById('safetyTraffic').value)||0;
+  var misc    = parseInt(document.getElementById('safetyMisc').value)||0;
+  var buffer  = parseInt(document.getElementById('safetyBuffer').value)||0;
+
+  var totalSteps   = steps.reduce(function(s,e){return s+e.minutes;},0);
+  var totalSafety  = traffic + misc + buffer;
+  var totalMinutes = totalSteps + totalSafety;
+
+  var departTime = subtractMinutes(arrival, totalMinutes);
+
+  // Build timeline (forward from depart)
+  var cursor = departTime;
+  var timeline = [];
+
+  // Depart row
+  timeline.push({ type:'depart', name:'Départ', time: cursor, meta: '' });
+
+  steps.forEach(function(s, i) {
+    if (s.minutes > 0) {
+      var end = addMinutes(cursor, s.minutes);
+      timeline.push({
+        type:'step', name: s.name,
+        time: cursor,
+        endTime: end,
+        meta: minToHM(s.minutes),
+        dot: 'accent'
+      });
+      cursor = end;
+    }
+  });
+
+  // Safety margins
+  if (traffic > 0) {
+    var end = addMinutes(cursor, traffic);
+    timeline.push({ type:'margin', name:'Marge embouteillages', time: cursor, endTime: end, meta: traffic+'min', dot:'red' });
+    cursor = end;
+  }
+  if (misc > 0) {
+    var end2 = addMinutes(cursor, misc);
+    timeline.push({ type:'margin', name:'Marge imprévus', time: cursor, endTime: end2, meta: misc+'min', dot:'blue' });
+    cursor = end2;
+  }
+  if (buffer > 0) {
+    var end3 = addMinutes(cursor, buffer);
+    timeline.push({ type:'margin', name:'Marge d\'avance', time: cursor, endTime: end3, meta: buffer+'min', dot:'green' });
+    cursor = end3;
+  }
+
+  // Arrival
+  timeline.push({ type:'arrival', name:'Arrivée souhaitée', time: arrival, meta: '', dot:'fin' });
+
+  // Render result
+  document.getElementById('resultTime').textContent = departTime;
+
+  // Sub text
+  var subParts = [];
+  if (totalSteps > 0) subParts.push('Trajet: ' + minToHM(totalSteps));
+  if (totalSafety > 0) subParts.push('Marges: ' + minToHM(totalSafety));
+  document.getElementById('resultSub').textContent = subParts.join('  •  ');
+
+  // Timeline
+  var tlHtml = '';
+  timeline.forEach(function(row, i) {
+    var isLast = (i === timeline.length-1);
+    var dotClass = 'tl-dot' + (row.dot ? ' '+row.dot : '') + (row.type==='depart'||row.type==='arrival' ? ' fin' : '');
+    var lineHtml = isLast ? '' : '<div class="tl-line"></div>';
+
+    var timeDisplay = row.type==='step' || row.type==='margin'
+      ? row.time + ' → ' + row.endTime
+      : row.time;
+
+    tlHtml += '<div class="timeline-row">'
+      + '<div style="position:relative;flex-shrink:0">'
+        + '<div class="'+dotClass+'"></div>'
+        + lineHtml
+      + '</div>'
+      + '<div class="tl-content">'
+        + '<div class="tl-name">'+row.name+'</div>'
+        + (row.meta ? '<div class="tl-meta">'+row.meta+'</div>' : '')
+      + '</div>'
+      + '<div class="tl-time">'+timeDisplay+'</div>'
+      + '</div>';
+  });
+  document.getElementById('resultTimeline').innerHTML = tlHtml;
+
+  // Totals
+  document.getElementById('totalTrajet').textContent  = minToHM(totalSteps);
+  document.getElementById('totalMarges').textContent  = minToHM(totalSafety);
+  document.getElementById('totalDuree').textContent   = minToHM(totalMinutes);
+  document.getElementById('totalArrivee').textContent = arrival;
+
+  // Show result and scroll to it
+  var rb = document.getElementById('resultBlock');
+  rb.classList.add('visible');
+  setTimeout(function(){ rb.scrollIntoView({behavior:'smooth', block:'start'}); }, 100);
+}
+
+// Init with 2 default steps
+addStep('Trajet principal', '1', '30');
+addStep('Stationnement',    '0', '10');
+</script>
+</body>
+</html>
