@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -402,7 +403,7 @@ function addStep(name, h, m) {
   div.innerHTML =
     '<div class="step-top">'
       + '<div class="step-num">' + id + '</div>'
-      + '<input class="step-name-input" type="text" placeholder="Nom de l\'&eacute;tape..." value="' + (name||'') + '">'
+      + '<input class="step-name-input" type="text" placeholder="ex: Autoroute A6, Pause café..." value="' + (name||'') + '">'
       + '<button class="del-btn" onclick="removeStep(' + id + ')">&#10005;</button>'
     + '</div>'
     + '<div class="step-dur">'
@@ -588,9 +589,9 @@ function calculate() {
   setTimeout(function(){ rb.scrollIntoView({behavior:'smooth', block:'start'}); }, 100);
 }
 
-// Init with 2 default steps
-addStep('Trajet principal', '1', '30');
-addStep('Stationnement',    '0', '10');
+// Init avec 2 étapes vides
+addStep('', '', '');
+addStep('', '', '');
 </script>
 </body>
 </html>
